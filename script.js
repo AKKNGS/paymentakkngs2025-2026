@@ -359,18 +359,18 @@ function closeModal() {
 function openProfile(student) {
   $("profileBody").innerHTML = `
     <div class="profile-grid">
-      <div class="profile-item"><strong>ID</strong>${student.studentId}</div>
-      <div class="profile-item"><strong>ឈ្មោះសិស្ស</strong>${student.studentName}</div>
-      <div class="profile-item"><strong>ភេទ</strong>${student.gender}</div>
-      <div class="profile-item"><strong>ថ្នាក់</strong>${student.className}</div>
+      <div class="profile-item"><strong>ID</strong>${student.studentId || "-"}</div>
+      <div class="profile-item"><strong>ឈ្មោះសិស្ស</strong>${student.studentName || "-"}</div>
+      <div class="profile-item"><strong>ភេទ</strong>${student.gender || "-"}</div>
+      <div class="profile-item"><strong>ថ្នាក់</strong>${student.className || "-"}</div>
       <div class="profile-item"><strong>ថ្លៃសាលា</strong>${formatKHR(student.schoolFee)}</div>
-      <div class="profile-item"><strong>First Date</strong>${student.firstDate || "-"}</div>
+      <div class="profile-item"><strong>First Date</strong>${formatDateDisplay(student.firstDate)}</div>
       <div class="profile-item"><strong>First Payment</strong>${formatKHR(student.firstPayment)}</div>
-      <div class="profile-item"><strong>Second Date</strong>${student.secondDate || "-"}</div>
+      <div class="profile-item"><strong>Second Date</strong>${formatDateDisplay(student.secondDate)}</div>
       <div class="profile-item"><strong>Second Payment</strong>${formatKHR(student.secondPayment)}</div>
       <div class="profile-item"><strong>Total Paid</strong>${formatKHR(student.totalPaid)}</div>
       <div class="profile-item"><strong>Balance</strong>${formatKHR(student.balance)}</div>
-      <div class="profile-item"><strong>Status</strong>${student.status}</div>
+      <div class="profile-item"><strong>Status</strong>${student.status || "-"}</div>
       <div class="profile-item"><strong>Remark 1</strong>${student.remark1 || "-"}</div>
       <div class="profile-item"><strong>Remark 2</strong>${student.remark2 || "-"}</div>
       <div class="profile-item"><strong>Others</strong>${student.others || "-"}</div>
@@ -613,3 +613,4 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
 });
+
