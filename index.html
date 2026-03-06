@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ប្រព័ន្ធបង់ថ្លៃសិស្ស - Pro Plus</title>
+  <title>ប្រព័ន្ធបង់ថ្លៃសិស្ស - Enterprise</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1e3a8a" />
@@ -12,14 +12,13 @@
   <div class="bg-shape shape-1"></div>
   <div class="bg-shape shape-2"></div>
 
-  <!-- Login -->
   <section class="login-page" id="loginPage">
     <div class="login-card">
       <div class="brand">
         <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
         <div>
           <h1>ប្រព័ន្ធបង់ថ្លៃសិស្ស</h1>
-          <p>School Payment System - Pro Plus</p>
+          <p>School Payment System - Enterprise</p>
         </div>
       </div>
 
@@ -46,7 +45,6 @@
     </div>
   </section>
 
-  <!-- App -->
   <section class="app-shell hidden" id="appShell">
     <aside class="sidebar">
       <div>
@@ -54,7 +52,7 @@
           <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
           <div>
             <h2>School Pay</h2>
-            <p>Pro Plus Manager</p>
+            <p>Enterprise</p>
           </div>
         </div>
 
@@ -78,7 +76,7 @@
       <header class="topbar">
         <div>
           <h1>ផ្ទាំងគ្រប់គ្រងការបង់ប្រាក់សិស្ស</h1>
-          <p>គ្រប់គ្រងទិន្នន័យ បោះពុម្ពរបាយការណ៍ និងប្រើបានងាយលើទូរស័ព្ទ</p>
+          <p>Enterprise Dashboard + Reports + Receipt</p>
         </div>
       </header>
 
@@ -87,6 +85,7 @@
         <button class="secondary-btn" id="exportCsvBtn" type="button">Export CSV</button>
         <button class="secondary-btn" id="printCurrentViewBtn" type="button">Print Current View</button>
         <button class="secondary-btn" id="printClassReportBtn" type="button">Print Class Report</button>
+        <button class="secondary-btn" id="printDateRangeBtn" type="button">Print Date Report</button>
       </section>
 
       <section class="stats-grid">
@@ -105,6 +104,50 @@
         <div class="stat-card">
           <p>ប្រាក់ប្រមូលបានសរុប</p>
           <h3 id="totalCollected">0 KHR</h3>
+        </div>
+      </section>
+
+      <section class="report-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Charts Dashboard</h2>
+            <button class="collapse-btn" type="button" data-target="chartPanel">បិទ/បើក</button>
+          </div>
+          <div id="chartPanel">
+            <div class="chart-grid">
+              <div class="chart-box">
+                <h3>Payment Status</h3>
+                <canvas id="statusChart" height="220"></canvas>
+              </div>
+              <div class="chart-box">
+                <h3>Collection by Class</h3>
+                <canvas id="classChart" height="220"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Date Range Report</h2>
+            <button class="collapse-btn" type="button" data-target="dateRangePanel">បិទ/បើក</button>
+          </div>
+          <div id="dateRangePanel">
+            <div class="date-range-grid">
+              <div class="input-group">
+                <label for="fromDate">From Date</label>
+                <input type="date" id="fromDate">
+              </div>
+              <div class="input-group">
+                <label for="toDate">To Date</label>
+                <input type="date" id="toDate">
+              </div>
+              <div class="input-group align-end">
+                <button class="secondary-btn" id="applyDateRangeBtn" type="button">Apply Date Filter</button>
+              </div>
+            </div>
+            <p class="helper-text">Filter តាម First Date និង Second Date</p>
+          </div>
         </div>
       </section>
 
@@ -162,6 +205,32 @@
 
       <section class="panel">
         <div class="panel-header">
+          <h2>Outstanding Students Dashboard</h2>
+          <button class="collapse-btn" type="button" data-target="outstandingPanel">បិទ/បើក</button>
+        </div>
+        <div id="outstandingPanel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ឈ្មោះសិស្ស</th>
+                  <th>ថ្នាក់</th>
+                  <th>ថ្លៃសាលា</th>
+                  <th>បានបង់</th>
+                  <th>នៅសល់</th>
+                </tr>
+              </thead>
+              <tbody id="outstandingBody">
+                <tr><td colspan="6" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
           <h2>ស្វែងរក និងតម្រង</h2>
         </div>
 
@@ -206,7 +275,6 @@
           <p>Connected to Google Sheet</p>
         </div>
 
-        <!-- Desktop Table -->
         <div class="table-wrap desktop-only">
           <table>
             <thead>
@@ -230,7 +298,6 @@
           </table>
         </div>
 
-        <!-- Mobile Cards -->
         <div class="mobile-cards mobile-only" id="studentCardList">
           <div class="empty-row">Loading data...</div>
         </div>
@@ -238,7 +305,6 @@
     </main>
   </section>
 
-  <!-- Payment Modal -->
   <div class="modal hidden" id="paymentModal">
     <div class="modal-card">
       <div class="modal-header">
@@ -249,6 +315,7 @@
       <div class="modal-body">
         <div class="student-info-box">
           <p><strong>ID:</strong> <span id="modalStudentId"></span></p>
+          <p><strong>Receipt No:</strong> <span id="modalReceiptNo"></span></p>
           <p><strong>ឈ្មោះ:</strong> <span id="modalStudentName"></span></p>
           <p><strong>ថ្នាក់:</strong> <span id="modalStudentClass"></span></p>
           <p><strong>ថ្លៃសាលា:</strong> <span id="modalSchoolFee"></span></p>
@@ -298,7 +365,6 @@
     </div>
   </div>
 
-  <!-- Student Profile Modal -->
   <div class="modal hidden" id="profileModal">
     <div class="modal-card profile-card">
       <div class="modal-header">
@@ -309,6 +375,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
