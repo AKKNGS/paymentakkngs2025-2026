@@ -111,7 +111,19 @@ tbody tr:hover{background:#f8fbff}
 .btn-print{background:#ede9fe;color:#6d28d9}
 .btn-profile{background:#ecfccb;color:#3f6212}
 
+
 .modal{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:1000;
+  overflow-y:auto;
+}
+
 .modal-card{
   width:100%;
   max-width:780px;
@@ -126,6 +138,11 @@ tbody tr:hover{background:#f8fbff}
 
 .profile-card{
   max-width:700px;
+}
+
+.modal-body{
+  padding:20px;
+  overflow-y:auto;
 }
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #edf2f7}
 .modal-header h2{margin:0}
@@ -172,7 +189,17 @@ code{background:#e2e8f0;padding:2px 6px;border-radius:6px}
   .modal-body{
     padding:14px;
   }
+
+  .profile-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+  .modal-body{
+    padding:14px;
+  }
 }
 
 }
+
 
