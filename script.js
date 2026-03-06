@@ -10,6 +10,7 @@ let currentUser = "Guest";
 let students = [];
 let selectedStudent = null;
 let activeTab = "all";
+let activeClass = "all";
 
 function $(id) {
   return document.getElementById(id);
@@ -27,7 +28,6 @@ function toNumber(value) {
 
 function formatDateDisplay(value) {
   if (!value) return "-";
-
   const text = String(value).trim();
   if (!text) return "-";
 
@@ -40,18 +40,30 @@ function formatDateDisplay(value) {
       return `${mm}/${dd}/${yyyy}`;
     }
   }
-
   return text;
 }
 
 function monthKey(dateText) {
   const text = String(dateText || "").trim();
   if (!text) return "No Date";
+
+  if (text.includes("T")) {
+    const d = new Date(text);
+    if (!isNaN(d.getTime())) {
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${month}/${year}`;
+    }
+  }
+
   const parts = text.split("/");
-  if (parts.length !== 3) return text;
-  const month = parts[0].padStart(2, "0");
-  const year = parts[2];
-  return `${month}/${year}`;
+  if (parts.length === 3) {
+    const month = parts[0].padStart(2, "0");
+    const year = parts[2];
+    return `${month}/${year}`;
+  }
+
+  return text;
 }
 
 function normalizeStatus(rawStatus, balance) {
@@ -150,15 +162,25 @@ async function fetchStudents() {
 }
 
 async function loadStudents() {
-  $("studentTableBody").innerHTML =
-    `<tr><td colspan="9" class="empty-row">Loading data...</td></tr>`;
+  if ($("studentTableBody")) {
+    $("studentTableBody").innerHTML = `<tr><td colspan="9" class="empty-row">Loading data...</td></tr>`;
+  }
+  if ($("studentCardList")) {
+    $("studentCardList").innerHTML = `<div class="empty-row">Loading data...</div>`;
+  }
 
   try {
     students = await fetchStudents();
 
     if (!students.length) {
-      $("studentTableBody").innerHTML =
-        `<tr><td colspan="9" class="empty-row">មិនទាន់មានទិន្នន័យ ឬមិនទាន់ដាក់ Apps Script URL</td></tr>`;
+      if ($("studentTableBody")) {
+        $("studentTableBody").innerHTML =
+          `<tr><td colspan="9" class="empty-row">មិនទាន់មានទិន្នន័យ ឬមិនទាន់ដាក់ Apps Script URL</td></tr>`;
+      }
+      if ($("studentCardList")) {
+        $("studentCardList").innerHTML = `<div class="empty-row">មិនទាន់មានទិន្នន័យ</div>`;
+      }
+      if ($("classQuickButtons")) $("classQuickButtons").innerHTML = "";
       renderDashboard([]);
       renderClassReport([]);
       renderMonthlyReport([]);
@@ -168,11 +190,18 @@ async function loadStudents() {
     renderDashboard(students);
     renderClassReport(students);
     renderMonthlyReport(students);
+    renderClassQuickButtons(students);
     renderTable();
   } catch (error) {
     console.error(error);
-    $("studentTableBody").innerHTML =
-      `<tr><td colspan="9" class="empty-row">មិនអាចទាញទិន្នន័យបានទេ។ សូមពិនិត្យ Apps Script URL</td></tr>`;
+    if ($("studentTableBody")) {
+      $("studentTableBody").innerHTML =
+        `<tr><td colspan="9" class="empty-row">មិនអាចទាញទិន្នន័យបានទេ។ សូមពិនិត្យ Apps Script URL</td></tr>`;
+    }
+    if ($("studentCardList")) {
+      $("studentCardList").innerHTML = `<div class="empty-row">មិនអាចទាញទិន្នន័យបានទេ</div>`;
+    }
+    if ($("classQuickButtons")) $("classQuickButtons").innerHTML = "";
     renderDashboard([]);
     renderClassReport([]);
     renderMonthlyReport([]);
@@ -189,18 +218,19 @@ function renderDashboard(data) {
 function renderClassReport(data) {
   const body = $("classReportBody");
   if (!data.length) {
-    body.innerHTML = `<tr><td colspan="5" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>`;
     return;
   }
 
   const grouped = {};
   data.forEach(item => {
     const key = item.className || "No Class";
-    if (!grouped[key]) grouped[key] = { className: key, total: 0, paid: 0, partial: 0, collected: 0 };
+    if (!grouped[key]) grouped[key] = { className: key, total: 0, paid: 0, partial: 0, collected: 0, balance: 0 };
     grouped[key].total += 1;
     if (item.status === "Paid") grouped[key].paid += 1;
     if (item.status === "Partial") grouped[key].partial += 1;
     grouped[key].collected += toNumber(item.totalPaid);
+    grouped[key].balance += toNumber(item.balance);
   });
 
   body.innerHTML = Object.values(grouped)
@@ -212,6 +242,7 @@ function renderClassReport(data) {
         <td>${row.paid}</td>
         <td>${row.partial}</td>
         <td>${formatKHR(row.collected)}</td>
+        <td>${formatKHR(row.balance)}</td>
       </tr>
     `).join("");
 }
@@ -253,6 +284,21 @@ function renderMonthlyReport(data) {
     `).join("");
 }
 
+function renderClassQuickButtons(data) {
+  const wrap = $("classQuickButtons");
+  if (!wrap) return;
+
+  const classes = [...new Set(
+    data.map(item => String(item.className || "").trim()).filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+
+  wrap.innerHTML = classes.map(className => `
+    <button class="chip-btn ${activeClass === className ? "active" : ""}" data-class-btn="${className}">
+      ${className}
+    </button>
+  `).join("");
+}
+
 function getFilteredStudents() {
   const search = $("searchInput").value.trim().toLowerCase();
   const status = $("statusFilter").value;
@@ -265,10 +311,11 @@ function getFilteredStudents() {
       item.className.toLowerCase().includes(search);
 
     const matchStatus = status === "all" ? true : item.status === status;
-    const matchClass = classKey ? item.className.toLowerCase().includes(classKey) : true;
+    const matchInputClass = classKey ? item.className.toLowerCase().includes(classKey) : true;
+    const matchQuickClass = activeClass === "all" ? true : item.className === activeClass;
     const matchTab = activeTab === "all" ? true : item.status === activeTab;
 
-    return matchSearch && matchStatus && matchClass && matchTab;
+    return matchSearch && matchStatus && matchInputClass && matchQuickClass && matchTab;
   });
 }
 
@@ -276,8 +323,13 @@ function renderTable() {
   const filtered = getFilteredStudents();
 
   if (!filtered.length) {
-    $("studentTableBody").innerHTML =
-      `<tr><td colspan="9" class="empty-row">មិនមានទិន្នន័យត្រូវនឹងលក្ខខណ្ឌស្វែងរក</td></tr>`;
+    if ($("studentTableBody")) {
+      $("studentTableBody").innerHTML =
+        `<tr><td colspan="9" class="empty-row">មិនមានទិន្នន័យត្រូវនឹងលក្ខខណ្ឌស្វែងរក</td></tr>`;
+    }
+    if ($("studentCardList")) {
+      $("studentCardList").innerHTML = `<div class="empty-row">មិនមានទិន្នន័យត្រូវនឹងលក្ខខណ្ឌស្វែងរក</div>`;
+    }
     return;
   }
 
@@ -307,6 +359,38 @@ function renderTable() {
         </div>
       </td>
     </tr>
+  `).join("");
+
+  $("studentCardList").innerHTML = filtered.map(item => `
+    <div class="student-card">
+      <div class="student-card-top">
+        <div>
+          <h3>${item.studentName}</h3>
+          <p><strong>ID:</strong> ${item.studentId}</p>
+          <p><strong>ថ្នាក់:</strong> ${item.className}</p>
+          <p><strong>ភេទ:</strong> ${item.gender}</p>
+        </div>
+        <div>
+          <span class="status-badge ${item.status === "Paid" ? "status-paid" : "status-partial"}">
+            ${item.status}
+          </span>
+        </div>
+      </div>
+
+      <p><strong>ថ្លៃសាលា:</strong> ${formatKHR(item.schoolFee)}</p>
+      <p><strong>បានបង់សរុប:</strong> ${formatKHR(item.totalPaid)}</p>
+      <p><strong>នៅសល់:</strong> ${formatKHR(item.balance)}</p>
+
+      <div class="student-card-actions">
+        ${
+          currentRole === "admin"
+            ? `<button class="action-btn btn-edit" data-id="${item.studentId}" data-action="edit">Edit</button>`
+            : `<button class="action-btn btn-view" data-id="${item.studentId}" data-action="view">View</button>`
+        }
+        <button class="action-btn btn-print" data-id="${item.studentId}" data-action="print">Receipt</button>
+        <button class="action-btn btn-profile" data-id="${item.studentId}" data-action="profile">Profile</button>
+      </div>
+    </div>
   `).join("");
 }
 
@@ -532,6 +616,167 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
+function printCurrentView() {
+  const rows = getFilteredStudents();
+
+  if (!rows.length) {
+    alert("មិនមានទិន្នន័យសម្រាប់បោះពុម្ពទេ");
+    return;
+  }
+
+  const titleClass = activeClass === "all" ? "ថ្នាក់ទាំងអស់" : activeClass;
+  const titleStatus = activeTab === "all" ? "ទាំងអស់" : activeTab;
+
+  const html = `
+    <html>
+    <head>
+      <title>Current View Report</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:24px;color:#111}
+        .sheet{max-width:1100px;margin:auto}
+        h1,p{margin:0 0 10px}
+        h1{color:#1e3a8a}
+        .meta{margin-bottom:16px;color:#475569}
+        table{width:100%;border-collapse:collapse;margin-top:16px}
+        th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;font-size:13px}
+        th{background:#eff6ff;color:#1e3a8a}
+      </style>
+    </head>
+    <body>
+      <div class="sheet">
+        <h1>របាយការណ៍សិស្ស</h1>
+        <p class="meta">ថ្នាក់: ${titleClass} | Status: ${titleStatus} | ចំនួនសិស្ស: ${rows.length}</p>
+        <p class="meta">បោះពុម្ពនៅ: ${new Date().toLocaleString()}</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>ឈ្មោះសិស្ស</th>
+              <th>ភេទ</th>
+              <th>ថ្នាក់</th>
+              <th>ថ្លៃសាលា</th>
+              <th>បានបង់សរុប</th>
+              <th>នៅសល់</th>
+              <th>ស្ថានភាព</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(item => `
+              <tr>
+                <td>${item.studentId}</td>
+                <td>${item.studentName}</td>
+                <td>${item.gender}</td>
+                <td>${item.className}</td>
+                <td>${formatKHR(item.schoolFee)}</td>
+                <td>${formatKHR(item.totalPaid)}</td>
+                <td>${formatKHR(item.balance)}</td>
+                <td>${item.status}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <script>
+        window.onload = function(){ window.print(); }
+      <\/script>
+    </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank", "width=1200,height=800");
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+function printClassReport() {
+  if (!students.length) {
+    alert("មិនមានទិន្នន័យសម្រាប់បោះពុម្ពទេ");
+    return;
+  }
+
+  const grouped = {};
+  students.forEach(item => {
+    const key = item.className || "No Class";
+    if (!grouped[key]) {
+      grouped[key] = {
+        className: key,
+        total: 0,
+        paid: 0,
+        partial: 0,
+        collected: 0,
+        balance: 0
+      };
+    }
+
+    grouped[key].total += 1;
+    if (item.status === "Paid") grouped[key].paid += 1;
+    if (item.status === "Partial") grouped[key].partial += 1;
+    grouped[key].collected += toNumber(item.totalPaid);
+    grouped[key].balance += toNumber(item.balance);
+  });
+
+  const rows = Object.values(grouped).sort((a, b) => a.className.localeCompare(b.className));
+
+  const html = `
+    <html>
+    <head>
+      <title>Class Report</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:24px;color:#111}
+        .sheet{max-width:1000px;margin:auto}
+        h1,p{margin:0 0 10px}
+        h1{color:#1e3a8a}
+        .meta{margin-bottom:16px;color:#475569}
+        table{width:100%;border-collapse:collapse;margin-top:16px}
+        th,td{border:1px solid #cbd5e1;padding:10px;text-align:left}
+        th{background:#eff6ff;color:#1e3a8a}
+      </style>
+    </head>
+    <body>
+      <div class="sheet">
+        <h1>របាយការណ៍តាមថ្នាក់</h1>
+        <p class="meta">បោះពុម្ពនៅ: ${new Date().toLocaleString()}</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ថ្នាក់</th>
+              <th>ចំនួនសិស្ស</th>
+              <th>Paid</th>
+              <th>Partial</th>
+              <th>Collected</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr>
+                <td>${row.className}</td>
+                <td>${row.total}</td>
+                <td>${row.paid}</td>
+                <td>${row.partial}</td>
+                <td>${formatKHR(row.collected)}</td>
+                <td>${formatKHR(row.balance)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <script>
+        window.onload = function(){ window.print(); }
+      <\/script>
+    </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank", "width=1100,height=800");
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
 function restoreSession() {
   const savedRole = localStorage.getItem("studentAppRole");
   const savedUser = localStorage.getItem("studentAppUser");
@@ -552,11 +797,23 @@ function bindTabEvents() {
   });
 }
 
+function bindCollapseEvents() {
+  document.querySelectorAll(".collapse-btn").forEach(btn => {
+    btn.addEventListener("click", function() {
+      const targetId = this.getAttribute("data-target");
+      const el = document.getElementById(targetId);
+      if (el) el.classList.toggle("collapsed");
+    });
+  });
+}
+
 function bindEvents() {
   $("loginBtn").addEventListener("click", login);
   $("logoutBtn").addEventListener("click", logout);
   $("refreshBtn").addEventListener("click", loadStudents);
   $("exportCsvBtn").addEventListener("click", exportCsv);
+  $("printCurrentViewBtn").addEventListener("click", printCurrentView);
+  $("printClassReportBtn").addEventListener("click", printClassReport);
 
   $("searchInput").addEventListener("input", renderTable);
   $("statusFilter").addEventListener("change", renderTable);
@@ -579,19 +836,29 @@ function bindEvents() {
   $("password").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
   $("username").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
 
-  $("studentTableBody").addEventListener("click", function(e) {
-    const btn = e.target.closest("button[data-id]");
+  $("studentTableBody").addEventListener("click", handleStudentAction);
+  $("studentCardList").addEventListener("click", handleStudentAction);
+
+  document.addEventListener("click", function(e) {
+    const btn = e.target.closest("button[data-class-btn]");
     if (!btn) return;
 
-    const studentId = btn.getAttribute("data-id");
-    const action = btn.getAttribute("data-action");
-    const item = getStudentById(studentId);
-    if (!item) return;
+    activeClass = btn.getAttribute("data-class-btn");
 
-    if (action === "edit") openPaymentModal(studentId, "edit");
-    else if (action === "view") openPaymentModal(studentId, "view");
-    else if (action === "print") printReceiptByStudent(item);
-    else if (action === "profile") openProfile(item);
+    document.querySelectorAll("button[data-class-btn]").forEach(x => x.classList.remove("active"));
+    btn.classList.add("active");
+
+    const allBtn = $("allClassesBtn");
+    if (allBtn) allBtn.classList.remove("active");
+
+    renderTable();
+  });
+
+  $("allClassesBtn").addEventListener("click", function() {
+    activeClass = "all";
+    document.querySelectorAll(".chip-btn").forEach(x => x.classList.remove("active"));
+    this.classList.add("active");
+    renderTable();
   });
 
   window.addEventListener("click", function(e) {
@@ -600,6 +867,22 @@ function bindEvents() {
   });
 
   bindTabEvents();
+  bindCollapseEvents();
+}
+
+function handleStudentAction(e) {
+  const btn = e.target.closest("button[data-id]");
+  if (!btn) return;
+
+  const studentId = btn.getAttribute("data-id");
+  const action = btn.getAttribute("data-action");
+  const item = getStudentById(studentId);
+  if (!item) return;
+
+  if (action === "edit") openPaymentModal(studentId, "edit");
+  else if (action === "view") openPaymentModal(studentId, "view");
+  else if (action === "print") printReceiptByStudent(item);
+  else if (action === "profile") openProfile(item);
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -611,6 +894,4 @@ document.addEventListener("DOMContentLoaded", function() {
       console.log("Service worker failed:", err);
     });
   }
-
 });
-
