@@ -25,6 +25,25 @@ function toNumber(value) {
   return Number(String(value).replace(/,/g, "").replace(/[^\d.-]/g, "")) || 0;
 }
 
+function formatDateDisplay(value) {
+  if (!value) return "-";
+
+  const text = String(value).trim();
+  if (!text) return "-";
+
+  if (text.includes("T")) {
+    const d = new Date(text);
+    if (!isNaN(d.getTime())) {
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      return `${mm}/${dd}/${yyyy}`;
+    }
+  }
+
+  return text;
+}
+
 function monthKey(dateText) {
   const text = String(dateText || "").trim();
   if (!text) return "No Date";
@@ -592,4 +611,5 @@ document.addEventListener("DOMContentLoaded", function() {
       console.log("Service worker failed:", err);
     });
   }
+
 });
