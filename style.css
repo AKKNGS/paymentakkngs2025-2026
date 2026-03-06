@@ -130,7 +130,10 @@ tbody tr:hover{background:#f8fbff}
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #edf2f7}
 .modal-header h2{margin:0}
 .icon-btn{width:40px;height:40px;border-radius:10px;background:#f1f5f9;font-size:24px}
-.modal-body{padding:20px}
+.modal-body{
+  padding:20px;
+  overflow-y:auto;
+}
 .student-info-box{background:#f8fbff;border:1px solid #dbeafe;border-radius:16px;padding:16px;margin-bottom:18px}
 .student-info-box p{margin:8px 0}
 .admin-toolbar{display:flex;gap:10px;justify-content:flex-end;margin-bottom:14px;flex-wrap:wrap}
@@ -154,9 +157,22 @@ code{background:#e2e8f0;padding:2px 6px;border-radius:6px}
   .topbar h1{font-size:30px}
 }
 @media (max-width: 640px){
-  .main-content{padding:16px}
-  .topbar{flex-direction:column;align-items:flex-start}
-  .stats-grid{grid-template-columns:1fr}
-  .login-form,.brand{padding:24px}
+  .modal{
+    padding:10px;
+    align-items:flex-start;
+  }
+
+  .modal-card,
+  .profile-card{
+    max-height:92vh;
+    margin-top:10px;
+    border-radius:16px;
+  }
+
+  .modal-body{
+    padding:14px;
+  }
+}
 
 }
+
