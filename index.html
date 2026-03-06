@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ប្រព័ន្ធបង់ថ្លៃសិស្ស - Pro</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1e3a8a" />
+</head>
+<body>
+  <div class="bg-shape shape-1"></div>
+  <div class="bg-shape shape-2"></div>
+
+  <!-- Login -->
+  <section class="login-page" id="loginPage">
+    <div class="login-card">
+      <div class="brand">
+        <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+        <div>
+          <h1>ប្រព័ន្ធបង់ថ្លៃសិស្ស</h1>
+          <p>School Payment System - Pro Version</p>
+        </div>
+      </div>
+
+      <div class="login-form">
+        <h2>ចូលប្រើប្រព័ន្ធ</h2>
+        <p class="subtext">Admin = កែប្រែបាន | User = មើលបានតែប៉ុណ្ណោះ</p>
+
+        <label for="username">ឈ្មោះអ្នកប្រើ</label>
+        <input type="text" id="username" placeholder="បញ្ចូល username" autocomplete="username">
+
+        <label for="password">ពាក្យសម្ងាត់</label>
+        <input type="password" id="password" placeholder="បញ្ចូល password" autocomplete="current-password">
+
+        <button type="button" class="primary-btn" id="loginBtn">ចូល</button>
+
+        <div class="demo-box">
+          <strong>គណនីសាកល្បង</strong>
+          <p>Admin: <code>admin</code> / <code>admin123</code></p>
+          <p>User: <code>user</code> / <code>user123</code></p>
+        </div>
+
+        <p id="loginMessage" class="error-text"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- App -->
+  <section class="app-shell hidden" id="appShell">
+    <aside class="sidebar">
+      <div>
+        <div class="brand mini">
+          <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+          <div>
+            <h2>School Pay</h2>
+            <p>Pro Manager</p>
+          </div>
+        </div>
+
+        <nav class="menu">
+          <button class="menu-item active" type="button">ផ្ទាំងគ្រប់គ្រង</button>
+          <button class="menu-item" type="button">ការបង់ប្រាក់</button>
+          <button class="menu-item" type="button">របាយការណ៍</button>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="user-box">
+          <p><strong id="currentUserName">Guest</strong></p>
+          <span id="currentRoleBadge" class="role-badge">User</span>
+        </div>
+        <button class="logout-btn" id="logoutBtn" type="button">ចាកចេញ</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1>ផ្ទាំងគ្រប់គ្រងការបង់ប្រាក់សិស្ស</h1>
+          <p>គ្រប់គ្រងទិន្នន័យ បោះពុម្ពបង្កាន់ដៃ និងរបាយការណ៍</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="secondary-btn" id="refreshBtn" type="button">Refresh</button>
+          <button class="secondary-btn" id="exportCsvBtn" type="button">Export CSV</button>
+        </div>
+      </header>
+
+      <section class="stats-grid">
+        <div class="stat-card">
+          <p>ចំនួនសិស្សសរុប</p>
+          <h3 id="totalStudents">0</h3>
+        </div>
+        <div class="stat-card">
+          <p>បានបង់រួច</p>
+          <h3 id="paidCount">0</h3>
+        </div>
+        <div class="stat-card">
+          <p>មិនទាន់គ្រប់</p>
+          <h3 id="partialCount">0</h3>
+        </div>
+        <div class="stat-card">
+          <p>ប្រាក់ប្រមូលបានសរុប</p>
+          <h3 id="totalCollected">0 KHR</h3>
+        </div>
+      </section>
+
+      <section class="report-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Class Report</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ថ្នាក់</th>
+                  <th>សិស្ស</th>
+                  <th>Paid</th>
+                  <th>Partial</th>
+                  <th>Collected</th>
+                </tr>
+              </thead>
+              <tbody id="classReportBody">
+                <tr><td colspan="5" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Monthly Report</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ខែ</th>
+                  <th>First Payment</th>
+                  <th>Second Payment</th>
+                  <th>សរុប</th>
+                </tr>
+              </thead>
+              <tbody id="monthlyReportBody">
+                <tr><td colspan="4" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>ស្វែងរក និងតម្រង</h2>
+        </div>
+
+        <div class="filters">
+          <div class="input-group">
+            <label for="searchInput">ស្វែងរក</label>
+            <input type="text" id="searchInput" placeholder="ស្វែងរកតាម ID, ឈ្មោះ, ថ្នាក់...">
+          </div>
+
+          <div class="input-group">
+            <label for="statusFilter">ស្ថានភាព</label>
+            <select id="statusFilter">
+              <option value="all">ទាំងអស់</option>
+              <option value="Paid">Paid</option>
+              <option value="Partial">Partial</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label for="classFilter">ថ្នាក់</label>
+            <input type="text" id="classFilter" placeholder="ឧ. Grade2A">
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="all">ទាំងអស់</button>
+          <button class="tab-btn" data-tab="Paid">Paid</button>
+          <button class="tab-btn" data-tab="Partial">Partial</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>បញ្ជីការបង់ប្រាក់សិស្ស</h2>
+          <p>Connected to Google Sheet</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>ឈ្មោះសិស្ស</th>
+                <th>ភេទ</th>
+                <th>ថ្នាក់</th>
+                <th>ថ្លៃសាលា</th>
+                <th>បានបង់សរុប</th>
+                <th>នៅសល់</th>
+                <th>ស្ថានភាព</th>
+                <th>សកម្មភាព</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody">
+              <tr>
+                <td colspan="9" class="empty-row">Loading data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <!-- Payment Modal -->
+  <div class="modal hidden" id="paymentModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>កែប្រែការបង់ប្រាក់</h2>
+        <button class="icon-btn" id="closeModalBtn" type="button">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="student-info-box">
+          <p><strong>ID:</strong> <span id="modalStudentId"></span></p>
+          <p><strong>ឈ្មោះ:</strong> <span id="modalStudentName"></span></p>
+          <p><strong>ថ្នាក់:</strong> <span id="modalStudentClass"></span></p>
+          <p><strong>ថ្លៃសាលា:</strong> <span id="modalSchoolFee"></span></p>
+          <p><strong>បានបង់សរុប:</strong> <span id="modalCurrentPaid"></span></p>
+          <p><strong>នៅសល់:</strong> <span id="modalCurrentBalance"></span></p>
+        </div>
+
+        <div class="admin-toolbar">
+          <button class="secondary-btn small-btn" id="printReceiptBtn" type="button">Print Receipt</button>
+          <button class="secondary-btn small-btn" id="openProfileBtn" type="button">Student Profile</button>
+        </div>
+
+        <div class="form-grid">
+          <div class="input-group">
+            <label for="firstPaymentInput">First Payment</label>
+            <input type="number" id="firstPaymentInput" min="0" placeholder="0">
+          </div>
+
+          <div class="input-group">
+            <label for="secondPaymentInput">Second Payment</label>
+            <input type="number" id="secondPaymentInput" min="0" placeholder="0">
+          </div>
+
+          <div class="input-group">
+            <label for="othersInput">Others</label>
+            <input type="text" id="othersInput" placeholder="ឧ. Scan QR">
+          </div>
+
+          <div class="input-group">
+            <label for="remark1Input">Remark 1</label>
+            <input type="text" id="remark1Input" placeholder="Remark 1">
+          </div>
+
+          <div class="input-group">
+            <label for="remark2Input">Remark 2</label>
+            <input type="text" id="remark2Input" placeholder="Remark 2">
+          </div>
+        </div>
+
+        <p id="saveMessage" class="info-text"></p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="secondary-btn" id="cancelBtn" type="button">បោះបង់</button>
+        <button class="primary-btn" id="saveBtn" type="button">រក្សាទុក</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Profile Modal -->
+  <div class="modal hidden" id="profileModal">
+    <div class="modal-card profile-card">
+      <div class="modal-header">
+        <h2>ព័ត៌មានសិស្ស</h2>
+        <button class="icon-btn" id="closeProfileBtn" type="button">&times;</button>
+      </div>
+      <div class="modal-body" id="profileBody"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
