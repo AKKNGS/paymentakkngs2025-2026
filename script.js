@@ -1,4 +1,4 @@
-const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
+const API_URL = "https://script.google.com/macros/s/AKfycbzOcDcW0X_6npNUnpL-vpojQeO9m5H9acduZBFOq269o4ftwlCKHRvbwWCE6vOHAjvB4Q/exec";
 
 const DEMO_USERS = [
   { username: "admin", password: "admin123", role: "admin", name: "Administrator" },
@@ -1110,3 +1110,4 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 });
+
