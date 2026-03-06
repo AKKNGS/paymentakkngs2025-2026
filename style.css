@@ -112,11 +112,21 @@ tbody tr:hover{background:#f8fbff}
 .btn-profile{background:#ecfccb;color:#3f6212}
 
 .modal{
-  position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;
-  padding:20px;z-index:1000
+.modal-card{
+  width:100%;
+  max-width:780px;
+  background:#fff;
+  border-radius:22px;
+  box-shadow:0 20px 60px rgba(0,0,0,.18);
+  overflow:hidden;
+  max-height:90vh;
+  display:flex;
+  flex-direction:column;
 }
-.modal-card{width:100%;max-width:780px;background:#fff;border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.18);overflow:hidden}
-.profile-card{max-width:700px}
+
+.profile-card{
+  max-width:700px;
+}
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #edf2f7}
 .modal-header h2{margin:0}
 .icon-btn{width:40px;height:40px;border-radius:10px;background:#f1f5f9;font-size:24px}
@@ -148,4 +158,5 @@ code{background:#e2e8f0;padding:2px 6px;border-radius:6px}
   .topbar{flex-direction:column;align-items:flex-start}
   .stats-grid{grid-template-columns:1fr}
   .login-form,.brand{padding:24px}
+
 }
