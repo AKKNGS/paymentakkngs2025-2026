@@ -1,4 +1,4 @@
-const CACHE_NAME = "student-payment-cache-v1";
+const CACHE_NAME = "student-payment-cache-v2";
 const urlsToCache = [
   "./",
   "./index.html",
@@ -18,4 +18,5 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(response => response || fetch(event.request))
   );
+
 });
