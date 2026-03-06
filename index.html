@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ប្រព័ន្ធបង់ថ្លៃសិស្ស - Pro</title>
+  <title>ប្រព័ន្ធបង់ថ្លៃសិស្ស - Pro Plus</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1e3a8a" />
@@ -19,7 +19,7 @@
         <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
         <div>
           <h1>ប្រព័ន្ធបង់ថ្លៃសិស្ស</h1>
-          <p>School Payment System - Pro Version</p>
+          <p>School Payment System - Pro Plus</p>
         </div>
       </div>
 
@@ -54,7 +54,7 @@
           <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
           <div>
             <h2>School Pay</h2>
-            <p>Pro Manager</p>
+            <p>Pro Plus Manager</p>
           </div>
         </div>
 
@@ -78,13 +78,16 @@
       <header class="topbar">
         <div>
           <h1>ផ្ទាំងគ្រប់គ្រងការបង់ប្រាក់សិស្ស</h1>
-          <p>គ្រប់គ្រងទិន្នន័យ បោះពុម្ពបង្កាន់ដៃ និងរបាយការណ៍</p>
-        </div>
-        <div class="topbar-actions">
-          <button class="secondary-btn" id="refreshBtn" type="button">Refresh</button>
-          <button class="secondary-btn" id="exportCsvBtn" type="button">Export CSV</button>
+          <p>គ្រប់គ្រងទិន្នន័យ បោះពុម្ពរបាយការណ៍ និងប្រើបានងាយលើទូរស័ព្ទ</p>
         </div>
       </header>
+
+      <section class="sticky-bar">
+        <button class="secondary-btn" id="refreshBtn" type="button">Refresh</button>
+        <button class="secondary-btn" id="exportCsvBtn" type="button">Export CSV</button>
+        <button class="secondary-btn" id="printCurrentViewBtn" type="button">Print Current View</button>
+        <button class="secondary-btn" id="printClassReportBtn" type="button">Print Class Report</button>
+      </section>
 
       <section class="stats-grid">
         <div class="stat-card">
@@ -109,43 +112,50 @@
         <div class="panel">
           <div class="panel-header">
             <h2>Class Report</h2>
+            <button class="collapse-btn" type="button" data-target="classReportPanel">បិទ/បើក</button>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ថ្នាក់</th>
-                  <th>សិស្ស</th>
-                  <th>Paid</th>
-                  <th>Partial</th>
-                  <th>Collected</th>
-                </tr>
-              </thead>
-              <tbody id="classReportBody">
-                <tr><td colspan="5" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>
-              </tbody>
-            </table>
+          <div id="classReportPanel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ថ្នាក់</th>
+                    <th>សិស្ស</th>
+                    <th>Paid</th>
+                    <th>Partial</th>
+                    <th>Collected</th>
+                    <th>Balance</th>
+                  </tr>
+                </thead>
+                <tbody id="classReportBody">
+                  <tr><td colspan="6" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-header">
             <h2>Monthly Report</h2>
+            <button class="collapse-btn" type="button" data-target="monthlyReportPanel">បិទ/បើក</button>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ខែ</th>
-                  <th>First Payment</th>
-                  <th>Second Payment</th>
-                  <th>សរុប</th>
-                </tr>
-              </thead>
-              <tbody id="monthlyReportBody">
-                <tr><td colspan="4" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>
-              </tbody>
-            </table>
+          <div id="monthlyReportPanel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ខែ</th>
+                    <th>First Payment</th>
+                    <th>Second Payment</th>
+                    <th>សរុប</th>
+                  </tr>
+                </thead>
+                <tbody id="monthlyReportBody">
+                  <tr><td colspan="4" class="empty-row">មិនទាន់មានទិន្នន័យ</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -176,6 +186,13 @@
           </div>
         </div>
 
+        <div class="quick-actions">
+          <div class="quick-actions-left">
+            <button class="chip-btn active" data-class="all" id="allClassesBtn">ថ្នាក់ទាំងអស់</button>
+            <div id="classQuickButtons" class="chip-wrap"></div>
+          </div>
+        </div>
+
         <div class="tabs">
           <button class="tab-btn active" data-tab="all">ទាំងអស់</button>
           <button class="tab-btn" data-tab="Paid">Paid</button>
@@ -189,7 +206,8 @@
           <p>Connected to Google Sheet</p>
         </div>
 
-        <div class="table-wrap">
+        <!-- Desktop Table -->
+        <div class="table-wrap desktop-only">
           <table>
             <thead>
               <tr>
@@ -210,6 +228,11 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="mobile-cards mobile-only" id="studentCardList">
+          <div class="empty-row">Loading data...</div>
         </div>
       </section>
     </main>
