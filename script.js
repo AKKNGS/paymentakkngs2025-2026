@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzOcDcW0X_6npNUnpL-vpojQeO9m5H9acduZBFOq269o4ftwlCKHRvbwWCE6vOHAjvB4Q/exec";
+const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
 
 const DEMO_USERS = [
   { username: "admin", password: "admin123", role: "admin", name: "Administrator" },
@@ -11,6 +11,10 @@ let students = [];
 let selectedStudent = null;
 let activeTab = "all";
 let activeClass = "all";
+let activeFromDate = "";
+let activeToDate = "";
+let statusChartInstance = null;
+let classChartInstance = null;
 
 function $(id) {
   return document.getElementById(id);
@@ -28,42 +32,50 @@ function toNumber(value) {
 
 function formatDateDisplay(value) {
   if (!value) return "-";
-  const text = String(value).trim();
-  if (!text) return "-";
-
-  if (text.includes("T")) {
-    const d = new Date(text);
-    if (!isNaN(d.getTime())) {
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      const yyyy = d.getFullYear();
-      return `${mm}/${dd}/${yyyy}`;
-    }
-  }
-  return text;
+  const parsed = parseFlexibleDate(value);
+  if (!parsed) return String(value);
+  const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+  const dd = String(parsed.getDate()).padStart(2, "0");
+  const yyyy = parsed.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
 }
 
-function monthKey(dateText) {
-  const text = String(dateText || "").trim();
-  if (!text) return "No Date";
+function parseFlexibleDate(value) {
+  if (!value) return null;
+  const text = String(value).trim();
+  if (!text) return null;
 
   if (text.includes("T")) {
     const d = new Date(text);
-    if (!isNaN(d.getTime())) {
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const year = d.getFullYear();
-      return `${month}/${year}`;
-    }
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    const d = new Date(text + "T00:00:00");
+    return isNaN(d.getTime()) ? null : d;
   }
 
   const parts = text.split("/");
   if (parts.length === 3) {
-    const month = parts[0].padStart(2, "0");
-    const year = parts[2];
-    return `${month}/${year}`;
+    const mm = Number(parts[0]);
+    const dd = Number(parts[1]);
+    const yyyy = Number(parts[2]);
+    if (mm && dd && yyyy) {
+      const d = new Date(yyyy, mm - 1, dd);
+      return isNaN(d.getTime()) ? null : d;
+    }
   }
 
-  return text;
+  const d = new Date(text);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function monthKey(dateText) {
+  const d = parseFlexibleDate(dateText);
+  if (!d) return "No Date";
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${month}/${year}`;
 }
 
 function normalizeStatus(rawStatus, balance) {
@@ -103,6 +115,15 @@ function normalizeStudent(item) {
     balance,
     status: normalizeStatus(item["Status"], balance)
   };
+}
+
+function generateReceiptNumber(student) {
+  const id = (student.studentId || "NA").replace(/\s+/g, "");
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `RCP-${y}${m}${d}-${id}`;
 }
 
 function showLoginError(message) {
@@ -161,6 +182,25 @@ async function fetchStudents() {
   return result.map(normalizeStudent);
 }
 
+function isStudentInDateRange(student) {
+  if (!activeFromDate && !activeToDate) return true;
+
+  const firstDate = parseFlexibleDate(student.firstDate);
+  const secondDate = parseFlexibleDate(student.secondDate);
+
+  const from = activeFromDate ? new Date(activeFromDate + "T00:00:00") : null;
+  const to = activeToDate ? new Date(activeToDate + "T23:59:59") : null;
+
+  const matchDate = (d) => {
+    if (!d) return false;
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  };
+
+  return matchDate(firstDate) || matchDate(secondDate);
+}
+
 async function loadStudents() {
   if ($("studentTableBody")) {
     $("studentTableBody").innerHTML = `<tr><td colspan="9" class="empty-row">Loading data...</td></tr>`;
@@ -184,13 +224,17 @@ async function loadStudents() {
       renderDashboard([]);
       renderClassReport([]);
       renderMonthlyReport([]);
+      renderOutstanding([]);
+      renderCharts([]);
       return;
     }
 
     renderDashboard(students);
     renderClassReport(students);
     renderMonthlyReport(students);
+    renderOutstanding(students);
     renderClassQuickButtons(students);
+    renderCharts(students);
     renderTable();
   } catch (error) {
     console.error(error);
@@ -205,6 +249,8 @@ async function loadStudents() {
     renderDashboard([]);
     renderClassReport([]);
     renderMonthlyReport([]);
+    renderOutstanding([]);
+    renderCharts([]);
   }
 }
 
@@ -284,6 +330,30 @@ function renderMonthlyReport(data) {
     `).join("");
 }
 
+function renderOutstanding(data) {
+  const body = $("outstandingBody");
+  const rows = [...data]
+    .filter(item => toNumber(item.balance) > 0)
+    .sort((a, b) => toNumber(b.balance) - toNumber(a.balance))
+    .slice(0, 15);
+
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="6" class="empty-row">មិនមានសិស្សនៅសល់ទេ</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = rows.map(item => `
+    <tr>
+      <td>${item.studentId}</td>
+      <td>${item.studentName}</td>
+      <td>${item.className}</td>
+      <td>${formatKHR(item.schoolFee)}</td>
+      <td>${formatKHR(item.totalPaid)}</td>
+      <td>${formatKHR(item.balance)}</td>
+    </tr>
+  `).join("");
+}
+
 function renderClassQuickButtons(data) {
   const wrap = $("classQuickButtons");
   if (!wrap) return;
@@ -297,6 +367,60 @@ function renderClassQuickButtons(data) {
       ${className}
     </button>
   `).join("");
+}
+
+function renderCharts(data) {
+  const paid = data.filter(x => x.status === "Paid").length;
+  const partial = data.filter(x => x.status === "Partial").length;
+
+  if (statusChartInstance) statusChartInstance.destroy();
+  if (classChartInstance) classChartInstance.destroy();
+
+  const statusCanvas = $("statusChart");
+  const classCanvas = $("classChart");
+
+  if (statusCanvas && window.Chart) {
+    statusChartInstance = new Chart(statusCanvas, {
+      type: "doughnut",
+      data: {
+        labels: ["Paid", "Partial"],
+        datasets: [{
+          data: [paid, partial]
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  }
+
+  const classGrouped = {};
+  data.forEach(item => {
+    const key = item.className || "No Class";
+    classGrouped[key] = (classGrouped[key] || 0) + toNumber(item.totalPaid);
+  });
+
+  const sortedClasses = Object.entries(classGrouped)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+
+  if (classCanvas && window.Chart) {
+    classChartInstance = new Chart(classCanvas, {
+      type: "bar",
+      data: {
+        labels: sortedClasses.map(x => x[0]),
+        datasets: [{
+          label: "Collected",
+          data: sortedClasses.map(x => x[1])
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  }
 }
 
 function getFilteredStudents() {
@@ -314,8 +438,9 @@ function getFilteredStudents() {
     const matchInputClass = classKey ? item.className.toLowerCase().includes(classKey) : true;
     const matchQuickClass = activeClass === "all" ? true : item.className === activeClass;
     const matchTab = activeTab === "all" ? true : item.status === activeTab;
+    const matchDate = isStudentInDateRange(item);
 
-    return matchSearch && matchStatus && matchInputClass && matchQuickClass && matchTab;
+    return matchSearch && matchStatus && matchInputClass && matchQuickClass && matchTab && matchDate;
   });
 }
 
@@ -400,6 +525,7 @@ function getStudentById(studentId) {
 
 function fillModalData(item) {
   $("modalStudentId").textContent = item.studentId;
+  $("modalReceiptNo").textContent = generateReceiptNumber(item);
   $("modalStudentName").textContent = item.studentName;
   $("modalStudentClass").textContent = item.className;
   $("modalSchoolFee").textContent = formatKHR(item.schoolFee);
@@ -444,6 +570,7 @@ function openProfile(student) {
   $("profileBody").innerHTML = `
     <div class="profile-grid">
       <div class="profile-item"><strong>ID</strong>${student.studentId || "-"}</div>
+      <div class="profile-item"><strong>Receipt No</strong>${generateReceiptNumber(student)}</div>
       <div class="profile-item"><strong>ឈ្មោះសិស្ស</strong>${student.studentName || "-"}</div>
       <div class="profile-item"><strong>ភេទ</strong>${student.gender || "-"}</div>
       <div class="profile-item"><strong>ថ្នាក់</strong>${student.className || "-"}</div>
@@ -519,6 +646,7 @@ async function savePaymentUpdate() {
 }
 
 function printReceiptByStudent(item) {
+  const receiptNo = generateReceiptNumber(item);
   const receiptWindow = window.open("", "_blank", "width=900,height=700");
   const html = `
     <html>
@@ -544,6 +672,7 @@ function printReceiptByStudent(item) {
         <div class="head">
           <h1>បង្កាន់ដៃបង់ប្រាក់</h1>
           <p>Student Payment Receipt</p>
+          <p><strong>Receipt No:</strong> ${receiptNo}</p>
         </div>
 
         <div class="grid">
@@ -626,6 +755,9 @@ function printCurrentView() {
 
   const titleClass = activeClass === "all" ? "ថ្នាក់ទាំងអស់" : activeClass;
   const titleStatus = activeTab === "all" ? "ទាំងអស់" : activeTab;
+  const dateLabel = activeFromDate || activeToDate
+    ? ` | Date: ${activeFromDate || "..."} to ${activeToDate || "..."}`
+    : "";
 
   const html = `
     <html>
@@ -645,7 +777,7 @@ function printCurrentView() {
     <body>
       <div class="sheet">
         <h1>របាយការណ៍សិស្ស</h1>
-        <p class="meta">ថ្នាក់: ${titleClass} | Status: ${titleStatus} | ចំនួនសិស្ស: ${rows.length}</p>
+        <p class="meta">ថ្នាក់: ${titleClass} | Status: ${titleStatus}${dateLabel} | ចំនួនសិស្ស: ${rows.length}</p>
         <p class="meta">បោះពុម្ពនៅ: ${new Date().toLocaleString()}</p>
 
         <table>
@@ -777,6 +909,82 @@ function printClassReport() {
   win.document.close();
 }
 
+function printDateRangeReport() {
+  const rows = students.filter(isStudentInDateRange);
+
+  if (!activeFromDate && !activeToDate) {
+    alert("សូមជ្រើស From Date ឬ To Date ជាមុនសិន");
+    return;
+  }
+
+  if (!rows.length) {
+    alert("មិនមានទិន្នន័យក្នុងកាលបរិច្ឆេទនេះទេ");
+    return;
+  }
+
+  const html = `
+    <html>
+    <head>
+      <title>Date Range Report</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:24px;color:#111}
+        .sheet{max-width:1100px;margin:auto}
+        h1,p{margin:0 0 10px}
+        h1{color:#1e3a8a}
+        .meta{margin-bottom:16px;color:#475569}
+        table{width:100%;border-collapse:collapse;margin-top:16px}
+        th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;font-size:13px}
+        th{background:#eff6ff;color:#1e3a8a}
+      </style>
+    </head>
+    <body>
+      <div class="sheet">
+        <h1>របាយការណ៍តាមកាលបរិច្ឆេទ</h1>
+        <p class="meta">From: ${activeFromDate || "-"} | To: ${activeToDate || "-"}</p>
+        <p class="meta">ចំនួនសិស្ស: ${rows.length} | បោះពុម្ពនៅ: ${new Date().toLocaleString()}</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>ឈ្មោះសិស្ស</th>
+              <th>ថ្នាក់</th>
+              <th>First Date</th>
+              <th>Second Date</th>
+              <th>Total Paid</th>
+              <th>Balance</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(item => `
+              <tr>
+                <td>${item.studentId}</td>
+                <td>${item.studentName}</td>
+                <td>${item.className}</td>
+                <td>${formatDateDisplay(item.firstDate)}</td>
+                <td>${formatDateDisplay(item.secondDate)}</td>
+                <td>${formatKHR(item.totalPaid)}</td>
+                <td>${formatKHR(item.balance)}</td>
+                <td>${item.status}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <script>
+        window.onload = function(){ window.print(); }
+      <\/script>
+    </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank", "width=1200,height=800");
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
 function restoreSession() {
   const savedRole = localStorage.getItem("studentAppRole");
   const savedUser = localStorage.getItem("studentAppUser");
@@ -807,6 +1015,12 @@ function bindCollapseEvents() {
   });
 }
 
+function applyDateRangeFilter() {
+  activeFromDate = $("fromDate").value || "";
+  activeToDate = $("toDate").value || "";
+  renderTable();
+}
+
 function bindEvents() {
   $("loginBtn").addEventListener("click", login);
   $("logoutBtn").addEventListener("click", logout);
@@ -814,6 +1028,8 @@ function bindEvents() {
   $("exportCsvBtn").addEventListener("click", exportCsv);
   $("printCurrentViewBtn").addEventListener("click", printCurrentView);
   $("printClassReportBtn").addEventListener("click", printClassReport);
+  $("printDateRangeBtn").addEventListener("click", printDateRangeReport);
+  $("applyDateRangeBtn").addEventListener("click", applyDateRangeFilter);
 
   $("searchInput").addEventListener("input", renderTable);
   $("statusFilter").addEventListener("change", renderTable);
@@ -844,7 +1060,6 @@ function bindEvents() {
     if (!btn) return;
 
     activeClass = btn.getAttribute("data-class-btn");
-
     document.querySelectorAll("button[data-class-btn]").forEach(x => x.classList.remove("active"));
     btn.classList.add("active");
 
